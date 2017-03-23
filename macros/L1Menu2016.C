@@ -1151,10 +1151,11 @@ bool L1Menu2016::RunMenu()
     }
     else
       IsFired = CheckL1Seed(seed.first);
-
+     
     for(auto col : ColumnMap)
     {
       col.second->InsertInMenu(seed.first, IsFired);
+      seed.second.eventfire = IsFired;
     }
   }
 

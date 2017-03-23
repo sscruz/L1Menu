@@ -881,16 +881,16 @@ bool L1Plot::FillEffHistogram()
 {
   if (!doPlotEff) return false;
   if (!GetRecoFilter()) return false;
-
   GetRecoEvent();
   for(auto h : hEff)
-  {
+    {
     std::string l1seed = h.second->GetTitle();
     std::string objname = (*mL1Seed)[l1seed].singleObj;
     if (recoEvent.find(objname) == recoEvent.end())
       continue;
-    //std::cout << l1seed <<" " << (*mL1Seed)[l1seed].eventfire <<"  " << hEffFun[h.first]() << std::endl;
     h.second->Fill((*mL1Seed)[l1seed].eventfire, hEffFun[h.first]());
+    // bool pass = l1uGT_->GetuGTDecision( l1seed );
+    // h.second->Fill(pass, hEffFun[h.first]());
   }
 
   return true;
@@ -941,6 +941,7 @@ void L1Plot::SetTodo ( std::map<std::string, float> &L1Config)
 // ===========================================================================
 bool L1Plot::GetRecoFilter() const
 {
+  return true;
   if (!recoFilter_) return true;
 
   bool pass = true && recoFilter_->goodVerticesFilter
@@ -953,13 +954,25 @@ bool L1Plot::GetRecoFilter() const
                    && recoFilter_->muonBadTrackFilter;
 
   if (!pass) return pass; // If event is skip aleady
-
-  for (int i = 0; i < recoJet_->nJets; ++i)
-  {
-    if (recoJet_->etCorr.at(i) < 30) continue;
-    pass = pass && GoodRecoJet(i);
-    if (!pass) return pass; // If event is skip aleady
+  pass = false;
+  for (int i = 0; i < recoEle_-> nElectrons; ++i){
+    if (recoEle_->pt.at(i) < 20) continue;
+    if (recoEle_->isTightElectron.at(i)) continue;
+    pass = true;
   }
+  if (!pass) return pass; // If event is skip aleady
+  pass = false;
+  for (int i = 0; i < recoMuon_-> nMuons; ++i){
+    if (recoMuon_->pt.at(i) < 20) continue;
+    if (recoMuon_->isTightMuon.at(i) != 0) continue; // global muon
+  }
+
+  // for (int i = 0; i < recoJet_->nJets; ++i)
+  // {
+  //   if (recoJet_->etCorr.at(i) < 30) continue;
+  //   pass = pass && GoodRecoJet(i);
+  //   if (!pass) return pass; // If event is skip aleady
+  // }
 
   return pass;
 }       // -----  end of function L1Plot::GetRecoFilter  -----
