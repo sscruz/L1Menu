@@ -857,6 +857,15 @@ bool L1Plot::BookEffHistogram()
         hEffFun[hname] = std::bind(&L1Plot::FunLeadingPt, this, l1.second.singleObj);
       }
     } // End of SingleObj
+    // for MuEG seeds
+    else if(l1.first.find("Mu") != std::string::npos && 
+	    l1.first.find("EG") != std::string::npos){
+      hEff[l1.first+"EG_Pt"] = new TEfficiency( (l1.first + "_EGPt").c_str(), l1.first.c_str(), 100,0,500);
+      hEff[l1.first+"Mu_Pt"] = new TEfficiency( (l1.first + "_MuPt").c_str(), l1.first.c_str(), 100,0,500);
+      hEffFun[l1.first+"EG_Pt"] = std::bind(&L1Plot::FunLeadingPt, this, "EG");
+      hEffFun[l1.first+"Mu_Pt"] = std::bind(&L1Plot::FunLeadingPt, this, "Mu");
+
+    }
   }
   return true;
 }       // -----  end of function L1Plot::BookEffHistogram  -----
@@ -879,15 +888,15 @@ double L1Plot::FunLeadingPt(std::string obj)
 // ===========================================================================
 bool L1Plot::FillEffHistogram()
 {
+  GetRecoEvent();
   if (!doPlotEff) return false;
   if (!GetRecoFilter()) return false;
-  GetRecoEvent();
   for(auto h : hEff)
     {
     std::string l1seed = h.second->GetTitle();
     std::string objname = (*mL1Seed)[l1seed].singleObj;
-    if (recoEvent.find(objname) == recoEvent.end())
-      continue;
+    // if (recoEvent.find(objname) == recoEvent.end())
+    //   continue;
     h.second->Fill((*mL1Seed)[l1seed].eventfire, hEffFun[h.first]());
     // bool pass = l1uGT_->GetuGTDecision( l1seed );
     // h.second->Fill(pass, hEffFun[h.first]());
@@ -941,38 +950,43 @@ void L1Plot::SetTodo ( std::map<std::string, float> &L1Config)
 // ===========================================================================
 bool L1Plot::GetRecoFilter() const
 {
-  return true;
   if (!recoFilter_) return true;
 
-  bool pass = true && recoFilter_->goodVerticesFilter
-                   && recoFilter_->cscTightHalo2015Filter
-                   && recoFilter_->eeBadScFilter
-                   && recoFilter_->ecalDeadCellTPFilter
-                   && recoFilter_->hbheNoiseIsoFilter
-                   && recoFilter_->hbheNoiseFilter
-                   && recoFilter_->chHadTrackResFilter
-                   && recoFilter_->muonBadTrackFilter;
+  // bool pass = true && recoFilter_->goodVerticesFilter
+  //                  && recoFilter_->cscTightHalo2015Filter
+  //                  && recoFilter_->eeBadScFilter
+  //                  && recoFilter_->ecalDeadCellTPFilter
+  //                  && recoFilter_->hbheNoiseIsoFilter
+  //                  && recoFilter_->hbheNoiseFilter
+  //                  && recoFilter_->chHadTrackResFilter
+  //                  && recoFilter_->muonBadTrackFilter;      
 
-  if (!pass) return pass; // If event is skip aleady
-  pass = false;
+  // cout << " " << recoFilter_->goodVerticesFilter	    
+  //      << " " << recoFilter_->cscTightHalo2015Filter   
+  //      << " " << recoFilter_->eeBadScFilter	    
+  //      << " " << recoFilter_->ecalDeadCellTPFilter	    
+  //      << " " << recoFilter_->hbheNoiseIsoFilter	    
+  //      << " " << recoFilter_->hbheNoiseFilter	    
+  //      << " " << recoFilter_->chHadTrackResFilter	    
+  //      << " " << recoFilter_->muonBadTrackFilter << endl;
+
+  bool pass = false;
   for (int i = 0; i < recoEle_-> nElectrons; ++i){
+    if (fabs(recoEle_->eta.at(i)) > 2.4) continue;
     if (recoEle_->pt.at(i) < 20) continue;
     if (recoEle_->isTightElectron.at(i)) continue;
     pass = true;
   }
+
   if (!pass) return pass; // If event is skip aleady
   pass = false;
+
   for (int i = 0; i < recoMuon_-> nMuons; ++i){
     if (recoMuon_->pt.at(i) < 20) continue;
+    if (fabs(recoMuon_->eta.at(i)) > 2.4) continue;
     if (recoMuon_->isTightMuon.at(i) != 0) continue; // global muon
+    pass = true;
   }
-
-  // for (int i = 0; i < recoJet_->nJets; ++i)
-  // {
-  //   if (recoJet_->etCorr.at(i) < 30) continue;
-  //   pass = pass && GoodRecoJet(i);
-  //   if (!pass) return pass; // If event is skip aleady
-  // }
 
   return pass;
 }       // -----  end of function L1Plot::GetRecoFilter  -----
