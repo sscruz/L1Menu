@@ -123,6 +123,7 @@ class L1Plot
     TVector2 GetL1METCalo();
     inline bool SortVTLVs(std::vector<TLorentzVector> &reTLVs) const;
     double FunLeadingPt(std::string obj);
+    double FunLeadingEta(std::string obj);
 
     bool BookRateHistogram();
     bool FillRateHistogram();

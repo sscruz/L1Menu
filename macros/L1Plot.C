@@ -689,18 +689,16 @@ std::vector<TLorentzVector> L1Plot::GetRecoEle(bool isER, float IsoCut, int qual
   std::vector<TLorentzVector> reTLVs;
   const float EleERcut = 2.1;
   if (recoEle_ == NULL) return reTLVs;
-
   for (unsigned int i = 0; i < recoEle_->nElectrons; ++i)
   {
     if (qual == -1 && ! recoEle_ -> isVetoElectron.at(i)) continue;
     if (qual == 1 && ! recoEle_ -> isLooseElectron.at(i)) continue;
     if (qual == 2 && ! recoEle_ -> isMediumElectron.at(i)) continue;
     if (qual == 3 && ! recoEle_ -> isTightElectron.at(i)) continue;
-
+    if (qual == 4 && (!recoEle_ -> isTightElectron.at(i) || fabs(recoEle_->eta.at(i)) > 2.4)) continue;
     if (isER && fabs(recoEle_->eta.at(i)) > EleERcut )
       continue;
     if (recoEle_->iso.at(i) < IsoCut) continue;
-
     TLorentzVector temp(0, 0, 0, 0);
     temp.SetPtEtaPhiE( recoEle_->pt.at(i),
         recoEle_->eta.at(i),
@@ -727,7 +725,7 @@ std::vector<TLorentzVector> L1Plot::GetRecoMuon(float MuERcut, float IsoCut, int
   {
     if (qual == 1 && ! recoMuon_ -> isLooseMuon.at(i)) continue;
     if (qual == 2 && ! recoMuon_ -> isMediumMuon.at(i)) continue;
-
+    if (qual == 3 && ! recoMuon_ -> isTightMuon.at(i)) continue;
     if (fabs(recoMuon_->eta.at(i)) > MuERcut )
       continue;
 
@@ -793,9 +791,12 @@ bool L1Plot::GetRecoEvent()
   recoEvent["EG"]      = GetRecoEle();
   recoEvent["EGer"]    = GetRecoEle(true,   false, 0 );
   recoEvent["IsoEG"]   = GetRecoEle(false,  true,  0 );
-  recoEvent["IsoEGer"] = GetRecoEle(true,   true,  0 );
+  recoEvent["IsoEGTight"] = GetRecoEle(false,  0.,  4 ); 
+  recoEvent["IsoEGer"] = GetRecoEle(true,   0.15,  0 );
   recoEvent["Mu"]      = GetRecoMuon(99, 0.15, 2);
   recoEvent["MuOpen"]  = GetRecoMuon(99, 0.15, 1);
+
+  recoEvent["MuTight"] = GetRecoMuon(2.4,0.15, 3);
   recoEvent["Muer"]    = GetRecoMuon(2.1);
   recoEvent["HTT"]     = GetRecoSum("HTT");
   recoEvent["ETM"]     = GetRecoSum("ETM");
@@ -804,6 +805,9 @@ bool L1Plot::GetRecoEvent()
   recoEvent["HTM"]     = GetRecoSum("HTM");
   //recoEvent["HTM"]     = GetRecoHTMLocal();
   //recoEvent["HTM"]     = GetRecoSum("ETM");
+
+
+
   return true;
 }       // -----  end of function L1Plot::GetRecoEvent  -----
 
@@ -862,11 +866,25 @@ bool L1Plot::BookEffHistogram()
 	    l1.first.find("EG") != std::string::npos){
       hEff[l1.first+"EG_Pt"] = new TEfficiency( (l1.first + "_EGPt").c_str(), l1.first.c_str(), 100,0,500);
       hEff[l1.first+"Mu_Pt"] = new TEfficiency( (l1.first + "_MuPt").c_str(), l1.first.c_str(), 100,0,500);
-      hEffFun[l1.first+"EG_Pt"] = std::bind(&L1Plot::FunLeadingPt, this, "EG");
-      hEffFun[l1.first+"Mu_Pt"] = std::bind(&L1Plot::FunLeadingPt, this, "Mu");
+      hEffFun[l1.first+"EG_Pt"] = std::bind(&L1Plot::FunLeadingPt, this, "IsoEGTight");
+      hEffFun[l1.first+"Mu_Pt"] = std::bind(&L1Plot::FunLeadingPt, this, "MuTight");
 
+      hEff[l1.first+"EG_Eta"] = new TEfficiency( (l1.first + "_EGEta").c_str(), l1.first.c_str(), 100,-2.5,2.5);
+      hEff[l1.first+"Mu_Eta"] = new TEfficiency( (l1.first + "_MuEta").c_str(), l1.first.c_str(), 100,-2.5,2.5);
+      hEffFun[l1.first+"EG_Eta"] = std::bind(&L1Plot::FunLeadingEta, this, "IsoEGTight");
+      hEffFun[l1.first+"Mu_Eta"] = std::bind(&L1Plot::FunLeadingEta, this, "MuTight");
     }
   }
+
+  // OR of emu seeds
+  hEff["MuEG_OR_MuPt"] = new TEfficiency( "MuEG_OR_MuPt", "MuEG_OR", 100,0,200.);
+  hEffFun["MuEG_OR_MuPt"] = std::bind(&L1Plot::FunLeadingPt, this, "MuTight");
+  hEff["MuEG_OR_MuEta"] = new TEfficiency( "MuEG_OR_MuEta", "MuEG_OR", 100,-2.5,2.5);
+  hEffFun["MuEG_OR_MuEta"] = std::bind(&L1Plot::FunLeadingEta, this, "MuTight");
+  hEff["MuEG_OR_ElPt"] = new TEfficiency( "MuEG_OR_ElPt", "MuEG_OR", 100,0,200.);
+  hEffFun["MuEG_OR_ElPt"] = std::bind(&L1Plot::FunLeadingPt, this, "IsoEGTight");
+  hEff["MuEG_OR_ElEta"] = new TEfficiency( "MuEG_OR_ElEta", "MuEG_OR", 100,-2.5,2.5);
+  hEffFun["MuEG_OR_ElEta"] = std::bind(&L1Plot::FunLeadingEta, this, "IsoEGTight");
   return true;
 }       // -----  end of function L1Plot::BookEffHistogram  -----
 
@@ -883,6 +901,19 @@ double L1Plot::FunLeadingPt(std::string obj)
 }       // -----  end of function L1Plot::FunLeadingPt  -----
 
 // ===  FUNCTION  ============================================================
+//         Name:  L1Plot::FunLeadingEta
+//  Description:  /* cursor */
+// ===========================================================================
+double L1Plot::FunLeadingEta(std::string obj)
+{
+  const std::vector<TLorentzVector> &vs = recoEvent[obj];
+  if (vs.size() == 0) return -1;
+  else
+    return vs.front().Eta();
+}       // -----  end of function L1Plot::FunLeadingEta  -----
+
+
+// ===  FUNCTION  ============================================================
 //         Name:  L1Plot::FillEffHistogram
 //  Description:  
 // ===========================================================================
@@ -893,14 +924,44 @@ bool L1Plot::FillEffHistogram()
   if (!GetRecoFilter()) return false;
   for(auto h : hEff)
     {
-    std::string l1seed = h.second->GetTitle();
-    std::string objname = (*mL1Seed)[l1seed].singleObj;
-    // if (recoEvent.find(objname) == recoEvent.end())
-    //   continue;
-    h.second->Fill((*mL1Seed)[l1seed].eventfire, hEffFun[h.first]());
-    // bool pass = l1uGT_->GetuGTDecision( l1seed );
-    // h.second->Fill(pass, hEffFun[h.first]());
-  }
+      std::string l1seed = h.second->GetTitle();
+      bool pass = false;
+      if (l1seed == "MuEG_OR") 
+	pass = (*mL1Seed)["L1_Mu20_EG17"].eventfire || (*mL1Seed)["L1_Mu23_EG10"].eventfire || (*mL1Seed)["L1_Mu23_IsoEG10"].eventfire  || (*mL1Seed)["L1_Mu5_EG23"].eventfire  || (*mL1Seed)["L1_Mu5_IsoEG20"].eventfire;
+      else{
+	std::string objname = (*mL1Seed)[l1seed].singleObj;
+	pass = (*mL1Seed)[l1seed].eventfire;
+      }
+      h.second->Fill(pass, hEffFun[h.first]());
+      // bool pass = l1uGT_->GetuGTDecision( l1seed );
+      // h.second->Fill(pass, hEffFun[h.first]());
+      
+    }
+  
+  // // DEBUG
+  // cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << endl;
+  // cout << "Doesnt fire L1_Mu20_EG17" << endl;
+  // cout << "good electrons" << endl;
+  // for (int i = 0; i < recoEle_-> nElectrons; ++i){
+  //   if (fabs(recoEle_->eta.at(i)) > 2.4) continue;
+  //   if (recoEle_->pt.at(i) < 20) continue;
+  //   if (recoEle_->isTightElectron.at(i)) continue;
+  //   cout << recoEle_->pt.at(i) << " " << recoEle_->eta.at(i) << endl;
+  // }
+  // cout << "good muons" << endl;
+  // for (int i = 0; i < recoMuon_-> nMuons; ++i){
+  //   if (recoMuon_->pt.at(i) < 20) continue;
+  //   if (fabs(recoMuon_->eta.at(i)) > 2.4) continue;
+  //   if (recoMuon_->isTightMuon.at(i) != 0) continue; // global muon
+  //   cout << recoMuon_->pt.at(i)<< " " << recoMuon_->eta.at(i) << endl;
+  // }
+  // cout << "l1 muons" << endl;
+  // for(UInt_t imu=0; imu < upgrade_->nMuons; imu++) {
+  //   if (upgrade_->muonQual.at(imu) < 12) continue;
+  //   cout << upgrade_->muonEt.at(imu) << " " <<  upgrade_->muonEta.at(imu) << endl;
+  // }
+  // cout << ">>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+
 
   return true;
 }       // -----  end of function L1Plot::FillEffHistogram  -----
@@ -967,28 +1028,40 @@ bool L1Plot::GetRecoFilter() const
   //      << " " << recoFilter_->ecalDeadCellTPFilter	    
   //      << " " << recoFilter_->hbheNoiseIsoFilter	    
   //      << " " << recoFilter_->hbheNoiseFilter	    
-  //      << " " << recoFilter_->chHadTrackResFilter	    
+  //      << " " << recoFilter_->chHadTrakcResFilter	    
   //      << " " << recoFilter_->muonBadTrackFilter << endl;
 
+
+  // for (int i = 0; i < recoEle_-> nElectrons; ++i){
+  //   if (fabs(recoEle_->eta.at(i)) > 2.4) continue;
+  //   if (recoEle_->pt.at(i) < 20) continue;
+  //   if (fabs(fabs(recoEle_->eta.at(i)) - 1.5) < 0.1) continue;
+  //   if (recoEle_->isTightElectron.at(i)) continue;
+  //   pass = true;
+  // }
+
+  // if (!pass) return pass; // If event is skip aleady
   bool pass = false;
-  for (int i = 0; i < recoEle_-> nElectrons; ++i){
-    if (fabs(recoEle_->eta.at(i)) > 2.4) continue;
-    if (recoEle_->pt.at(i) < 20) continue;
-    if (recoEle_->isTightElectron.at(i)) continue;
+  float maxEl = 0.;
+  float maxMu = 0.;
+  for (auto & el : ((std::vector<TLorentzVector>) recoEvent.at("IsoEGTight"))){
+    if (fabs(el.Eta()) > 2.4) continue;
+    if (el.Pt() < 20.) continue;
+    if (el.Pt() > maxEl) maxEl = el.Pt();
     pass = true;
   }
-
   if (!pass) return pass; // If event is skip aleady
   pass = false;
-
-  for (int i = 0; i < recoMuon_-> nMuons; ++i){
-    if (recoMuon_->pt.at(i) < 20) continue;
-    if (fabs(recoMuon_->eta.at(i)) > 2.4) continue;
-    if (recoMuon_->isTightMuon.at(i) != 0) continue; // global muon
+  for (auto & mu : ((std::vector<TLorentzVector>) recoEvent.at("MuTight"))){
+    if (fabs(mu.Eta()) > 2.4) continue;
+    if (mu.Pt() < 20.) continue;
+    if (maxMu > mu.Pt()) maxMu = mu.Pt();
     pass = true;
   }
-
-  return pass;
+  if (!pass) return pass; // If event is skip aleady
+  if (max(maxMu, maxEl) < 25.) return false;
+  
+  return true;
 }       // -----  end of function L1Plot::GetRecoFilter  -----
 
 // ===  FUNCTION  ============================================================
