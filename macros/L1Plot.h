@@ -97,7 +97,7 @@ class L1Plot
     bool GoodRecoJet(int ijet) const;
     std::vector<TLorentzVector> GetRecoTau(bool isER=false, int Iso =0) const;
     std::vector<TLorentzVector> GetRecoMuon(float MuERcut=999, float IsoCut=0, int qual=0) const;
-    std::vector<TLorentzVector> GetRecoEle(bool isER=false, float IsoCut=0, int qual=0) const;
+    std::vector<TLorentzVector> GetRecoEle(bool isER=false, float IsoCut=0, int qual=0, float EleERcut = 2.1) const;
     std::vector<TLorentzVector> GetRecoJet(bool isCent=false) const;
 
     // ====================  DATA MEMBERS  ===============================

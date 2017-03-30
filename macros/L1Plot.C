@@ -684,10 +684,9 @@ std::vector<TLorentzVector> L1Plot::GetRecoSum(std::string type ) const
 //         Name:  L1Plot::GetRecoEle
 //  Description:  /* cursor */
 // ===========================================================================
-std::vector<TLorentzVector> L1Plot::GetRecoEle(bool isER, float IsoCut, int qual) const
+std::vector<TLorentzVector> L1Plot::GetRecoEle(bool isER, float IsoCut, int qual, float EleERcut) const
 {
   std::vector<TLorentzVector> reTLVs;
-  const float EleERcut = 2.1;
   if (recoEle_ == NULL) return reTLVs;
   for (unsigned int i = 0; i < recoEle_->nElectrons; ++i)
   {
@@ -698,7 +697,7 @@ std::vector<TLorentzVector> L1Plot::GetRecoEle(bool isER, float IsoCut, int qual
     if (qual == 4 && (!recoEle_ -> isTightElectron.at(i) || fabs(recoEle_->eta.at(i)) > 2.4)) continue;
     if (isER && fabs(recoEle_->eta.at(i)) > EleERcut )
       continue;
-    if (recoEle_->iso.at(i) < IsoCut) continue;
+    if (recoEle_->iso.at(i) > IsoCut) continue;
     TLorentzVector temp(0, 0, 0, 0);
     temp.SetPtEtaPhiE( recoEle_->pt.at(i),
         recoEle_->eta.at(i),
@@ -791,7 +790,7 @@ bool L1Plot::GetRecoEvent()
   recoEvent["EG"]      = GetRecoEle();
   recoEvent["EGer"]    = GetRecoEle(true,   false, 0 );
   recoEvent["IsoEG"]   = GetRecoEle(false,  true,  0 );
-  recoEvent["IsoEGTight"] = GetRecoEle(false,  0.,  4 ); 
+  recoEvent["IsoEGTight"] = GetRecoEle(true,  0.15,  4 , 2.4); 
   recoEvent["IsoEGer"] = GetRecoEle(true,   0.15,  0 );
   recoEvent["Mu"]      = GetRecoMuon(99, 0.15, 2);
   recoEvent["MuOpen"]  = GetRecoMuon(99, 0.15, 1);
@@ -1045,7 +1044,7 @@ bool L1Plot::GetRecoFilter() const
   float maxEl = 0.;
   float maxMu = 0.;
   for (auto & el : ((std::vector<TLorentzVector>) recoEvent.at("IsoEGTight"))){
-    if (fabs(el.Eta()) > 2.4) continue;
+    // if (fabs(el.Eta()) > 2.4) continue;
     if (el.Pt() < 20.) continue;
     if (el.Pt() > maxEl) maxEl = el.Pt();
     pass = true;
@@ -1053,7 +1052,7 @@ bool L1Plot::GetRecoFilter() const
   if (!pass) return pass; // If event is skip aleady
   pass = false;
   for (auto & mu : ((std::vector<TLorentzVector>) recoEvent.at("MuTight"))){
-    if (fabs(mu.Eta()) > 2.4) continue;
+    // if (fabs(mu.Eta()) > 2.4) continue;
     if (mu.Pt() < 20.) continue;
     if (maxMu > mu.Pt()) maxMu = mu.Pt();
     pass = true;
