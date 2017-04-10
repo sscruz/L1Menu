@@ -60,6 +60,7 @@ bool PreColumn::InsertInMenu(std::string L1name, bool value) {
   bool post_prescale = false;
 
   if ( mL1Seed.find(L1name) == mL1Seed.end() ) {
+    std::cout << L1name << endl;
     std::cout << "This shouldn't happen!" << std::endl;
     return false;
   }

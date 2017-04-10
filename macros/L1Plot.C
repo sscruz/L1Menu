@@ -690,13 +690,11 @@ std::vector<TLorentzVector> L1Plot::GetRecoEle(bool isER, float IsoCut, int qual
   if (recoEle_ == NULL) return reTLVs;
   for (unsigned int i = 0; i < recoEle_->nElectrons; ++i)
   {
-    if (qual == -1 && ! recoEle_ -> isVetoElectron.at(i)) continue;
-    if (qual == 1 && ! recoEle_ -> isLooseElectron.at(i)) continue;
+    if (qual == -1 && ! recoEle_ -> isVetoElectron.at(i))  continue;
+    if (qual == 1 && ! recoEle_ -> isLooseElectron.at(i))  continue;
     if (qual == 2 && ! recoEle_ -> isMediumElectron.at(i)) continue;
-    if (qual == 3 && ! recoEle_ -> isTightElectron.at(i)) continue;
-    if (qual == 4 && (!recoEle_ -> isTightElectron.at(i) || fabs(recoEle_->eta.at(i)) > 2.4)) continue;
-    if (isER && fabs(recoEle_->eta.at(i)) > EleERcut )
-      continue;
+    if (qual == 3 && ! recoEle_ -> isTightElectron.at(i))  continue;
+    if (isER && fabs(recoEle_->eta.at(i)) > EleERcut )     continue;
     if (recoEle_->iso.at(i) > IsoCut) continue;
     TLorentzVector temp(0, 0, 0, 0);
     temp.SetPtEtaPhiE( recoEle_->pt.at(i),
@@ -790,7 +788,7 @@ bool L1Plot::GetRecoEvent()
   recoEvent["EG"]      = GetRecoEle();
   recoEvent["EGer"]    = GetRecoEle(true,   false, 0 );
   recoEvent["IsoEG"]   = GetRecoEle(false,  true,  0 );
-  recoEvent["IsoEGTight"] = GetRecoEle(true,  0.15,  4 , 2.4); 
+  recoEvent["IsoEGTight"] = GetRecoEle(true,  0.15,  3 , 2.4); 
   recoEvent["IsoEGer"] = GetRecoEle(true,   0.15,  0 );
   recoEvent["Mu"]      = GetRecoMuon(99, 0.15, 2);
   recoEvent["MuOpen"]  = GetRecoMuon(99, 0.15, 1);
@@ -925,43 +923,55 @@ bool L1Plot::FillEffHistogram()
     {
       std::string l1seed = h.second->GetTitle();
       bool pass = false;
-      if (l1seed == "MuEG_OR") 
+      if (l1seed == "MuEG_OR"){
 	pass = (*mL1Seed)["L1_Mu20_EG17"].eventfire || (*mL1Seed)["L1_Mu23_EG10"].eventfire || (*mL1Seed)["L1_Mu23_IsoEG10"].eventfire  || (*mL1Seed)["L1_Mu5_EG23"].eventfire  || (*mL1Seed)["L1_Mu5_IsoEG20"].eventfire;
+      cout << pass << endl;
+      }
       else{
 	std::string objname = (*mL1Seed)[l1seed].singleObj;
 	pass = (*mL1Seed)[l1seed].eventfire;
       }
+      
       h.second->Fill(pass, hEffFun[h.first]());
       // bool pass = l1uGT_->GetuGTDecision( l1seed );
       // h.second->Fill(pass, hEffFun[h.first]());
       
     }
+  if( !((*mL1Seed)["L1_Mu20_EG17"].eventfire || (*mL1Seed)["L1_Mu23_EG10"].eventfire || (*mL1Seed)["L1_Mu23_IsoEG10"].eventfire  || (*mL1Seed)["L1_Mu5_EG23"].eventfire  || (*mL1Seed)["L1_Mu5_IsoEG20"].eventfire) && (fabs(L1Plot::FunLeadingEta("MuTight")) < 1.0)){
+
+  // DEBUG
+  cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << endl;
+  cout << "Doesnt fire L1_Mu20_EG17" << endl;
+  cout << "good electrons " << recoEle_->nElectrons << endl;
+  for (int i = 0; i < recoEle_-> nElectrons; ++i){
+    cout << "have enelctrons" << endl;
+    if (fabs(recoEle_->eta.at(i)) > 2.4) continue;
+    cout << "passes eta" << endl;
+    if (recoEle_->pt.at(i) < 20) continue;
+    cout << "passes pt" << endl;
+    if (recoEle_->isTightElectron.at(i)) continue;
+    cout << recoEle_->pt.at(i) << " " << recoEle_->eta.at(i) << endl;
+  }
+  cout << "good muons " << recoMuon_-> nMuons << endl;
+  for (int i = 0; i < recoMuon_-> nMuons; ++i){
+    if (recoMuon_->pt.at(i) < 20) continue;
+    if (fabs(recoMuon_->eta.at(i)) > 2.4) continue;
+    if (recoMuon_->isTightMuon.at(i) != 0) continue; // global muon
+    cout << recoMuon_->pt.at(i)<< " " << recoMuon_->eta.at(i) << endl;
+  }
+  cout << "l1 muons " << upgrade_->nMuons << endl;
+  for(UInt_t imu=0; imu < upgrade_->nMuons; imu++) {
+    if (upgrade_->muonQual.at(imu) < 12) continue;
+    cout << upgrade_->muonEt.at(imu) << " " <<  upgrade_->muonEta.at(imu) << endl;
+  }
   
-  // // DEBUG
-  // cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << endl;
-  // cout << "Doesnt fire L1_Mu20_EG17" << endl;
-  // cout << "good electrons" << endl;
-  // for (int i = 0; i < recoEle_-> nElectrons; ++i){
-  //   if (fabs(recoEle_->eta.at(i)) > 2.4) continue;
-  //   if (recoEle_->pt.at(i) < 20) continue;
-  //   if (recoEle_->isTightElectron.at(i)) continue;
-  //   cout << recoEle_->pt.at(i) << " " << recoEle_->eta.at(i) << endl;
-  // }
-  // cout << "good muons" << endl;
-  // for (int i = 0; i < recoMuon_-> nMuons; ++i){
-  //   if (recoMuon_->pt.at(i) < 20) continue;
-  //   if (fabs(recoMuon_->eta.at(i)) > 2.4) continue;
-  //   if (recoMuon_->isTightMuon.at(i) != 0) continue; // global muon
-  //   cout << recoMuon_->pt.at(i)<< " " << recoMuon_->eta.at(i) << endl;
-  // }
-  // cout << "l1 muons" << endl;
-  // for(UInt_t imu=0; imu < upgrade_->nMuons; imu++) {
-  //   if (upgrade_->muonQual.at(imu) < 12) continue;
-  //   cout << upgrade_->muonEt.at(imu) << " " <<  upgrade_->muonEta.at(imu) << endl;
-  // }
-  // cout << ">>>>>>>>>>>>>>>>>>>>>>>>" << endl;
-
-
+  cout << " reco muons " << recoEvent.at("MuTight").size() << endl;
+  for (UInt_t imu = 0; imu < recoEvent.at("MuTight").size(); ++imu){
+    cout << recoEvent.at("MuTight")[imu].Pt() << " " << recoEvent.at("MuTight")[imu].Eta() << endl;
+  }
+  cout << ">>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+  
+  }
   return true;
 }       // -----  end of function L1Plot::FillEffHistogram  -----
 
@@ -1043,6 +1053,7 @@ bool L1Plot::GetRecoFilter() const
   bool pass = false;
   float maxEl = 0.;
   float maxMu = 0.;
+
   for (auto & el : ((std::vector<TLorentzVector>) recoEvent.at("IsoEGTight"))){
     // if (fabs(el.Eta()) > 2.4) continue;
     if (el.Pt() < 20.) continue;
